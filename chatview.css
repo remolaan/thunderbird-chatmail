@@ -1,0 +1,105 @@
+body.chatview-hidden-body > *:not(#chatview-overlay) {
+  display: none !important;
+}
+
+#chatview-overlay {
+  position: fixed;
+  inset: 0;
+  background: #e9edef;
+  z-index: 999999;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.chatview-toolbar {
+  position: sticky;
+  top: 0;
+  background: #f0f2f5;
+  border-bottom: 1px solid #d1d7db;
+  padding: 8px 12px;
+  z-index: 2;
+}
+
+.chatview-toolbar button {
+  background: transparent;
+  border: 1px solid #8696a0;
+  color: #54656f;
+  border-radius: 14px;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.chatview-toolbar button:hover {
+  background: #d9dbde;
+}
+
+.chatview-list {
+  flex: 1;
+  padding: 16px 12px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.chatview-row {
+  display: flex;
+  width: 100%;
+}
+
+.chatview-row.chatview-me {
+  justify-content: flex-end;
+}
+
+.chatview-row.chatview-them {
+  justify-content: flex-start;
+}
+
+.chatview-bubble {
+  max-width: 72%;
+  padding: 6px 10px 8px;
+  border-radius: 8px;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+  font-size: 14.2px;
+  line-height: 1.4;
+  color: #111b21;
+  position: relative;
+}
+
+.chatview-me .chatview-bubble {
+  background: #d9fdd3;
+  border-top-right-radius: 2px;
+}
+
+.chatview-them .chatview-bubble {
+  background: #ffffff;
+  border-top-left-radius: 2px;
+}
+
+.chatview-sender {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: #1a73a3;
+}
+
+.chatview-text p {
+  margin: 0 0 6px 0;
+  white-space: normal;
+}
+
+.chatview-text p:last-child {
+  margin-bottom: 0;
+}
+
+.chatview-meta {
+  font-size: 11px;
+  color: #667781;
+  text-align: right;
+  margin-top: 4px;
+}

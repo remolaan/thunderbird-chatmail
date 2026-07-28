@@ -1,0 +1,127 @@
+(function () {
+  if (window.__chatViewInstalled) return;
+  window.__chatViewInstalled = true;
+
+  let overlay = null;
+  let myTabId = null;
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function bodyToHtml(body) {
+    return body
+      .split(/\n{2,}/)
+      .map(
+        (para) =>
+          "<p>" + escapeHtml(para).replace(/\n/g, "<br>") + "</p>"
+      )
+      .join("");
+  }
+
+  function render(segments, myEmails) {
+    if (overlay) return;
+
+    overlay = document.createElement("div");
+    overlay.id = "chatview-overlay";
+
+    const list = document.createElement("div");
+    list.className = "chatview-list";
+
+    // segments are newest-first in the raw text (top-posted); show oldest
+    // first, like a real chat thread, newest at the bottom.
+    const ordered = [...segments].reverse();
+
+    let lastSender = null;
+    for (const seg of ordered) {
+      const isMe =
+        !seg.sender ||
+        (seg.email && myEmails.includes(seg.email.toLowerCase()));
+
+      const row = document.createElement("div");
+      row.className = "chatview-row " + (isMe ? "chatview-me" : "chatview-them");
+
+      const showHeader = seg.sender !== lastSender;
+      lastSender = seg.sender;
+
+      const bubble = document.createElement("div");
+      bubble.className = "chatview-bubble";
+
+      let headerHtml = "";
+      if (showHeader && !isMe) {
+        headerHtml = `<div class="chatview-sender">${escapeHtml(
+          seg.sender || "Unknown"
+        )}</div>`;
+      }
+
+      bubble.innerHTML =
+        headerHtml +
+        `<div class="chatview-text">${bodyToHtml(seg.body)}</div>` +
+        `<div class="chatview-meta">${escapeHtml(seg.date || "")}</div>`;
+
+      row.appendChild(bubble);
+      list.appendChild(row);
+    }
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "chatview-toolbar";
+    toolbar.innerHTML = `<button id="chatview-show-original">Show original</button>`;
+
+    overlay.appendChild(toolbar);
+    overlay.appendChild(list);
+
+    document.documentElement.appendChild(overlay);
+    document.body.classList.add("chatview-hidden-body");
+
+    document
+      .getElementById("chatview-show-original")
+      .addEventListener("click", () => {
+        restore();
+        browser.runtime.sendMessage({ type: "chatview-user-restored" }).catch(() => {});
+      });
+  }
+
+  function restore() {
+    if (overlay) {
+      overlay.remove();
+      overlay = null;
+    }
+    document.body.classList.remove("chatview-hidden-body");
+  }
+
+  // -----------------------------------------------------------------------
+  // Communication with the background script
+  // -----------------------------------------------------------------------
+
+  // On initial load, ask background if chat view is active for this tab.
+  browser.runtime.sendMessage({ type: "chatview-init" }).then((init) => {
+    if (init) {
+      myTabId = init.tabId;
+      if (init.active) {
+        render(init.segments, init.myEmails || []);
+      }
+    }
+  }).catch(() => {});
+
+  // Listen for toggle signals from background via storage.
+  browser.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || myTabId === null) return;
+    const key = `chatview-cmd-${myTabId}`;
+    if (changes[key]) {
+      const cmd = changes[key].newValue;
+      if (cmd === "restore") {
+        restore();
+      } else if (cmd === "render") {
+        browser.runtime.sendMessage({ type: "chatview-fetch" }).then((res) => {
+          if (res && res.active) {
+            render(res.segments, res.myEmails || []);
+          }
+        }).catch(() => {});
+      }
+    }
+  });
+})();

@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "ChatView for Thunderbird",
+  "version": "0.1.0",
+  "description": "Displays email messages and reply chains as clean, minimal chat bubbles — hides signatures, disclaimers, and boilerplate.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "chatview@local.extension",
+      "strict_min_version": "128.0"
+    }
+  },
+  "permissions": [
+    "messagesRead",
+    "messagesModify",
+    "storage"
+  ],
+  "background": {
+    "scripts": ["parser.js", "background.js"]
+  },
+  "message_display_action": {
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    },
+    "default_title": "Toggle Chat View"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "64": "icons/icon-64.png"
+  }
+}
