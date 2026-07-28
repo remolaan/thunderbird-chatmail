@@ -11,6 +11,8 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   display: flex;
   flex-direction: column;
+  color: #111b21;
+  box-sizing: border-box;
 }
 
 .chatview-toolbar {
@@ -23,6 +25,7 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .chatview-toolbar button {
@@ -48,12 +51,16 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   max-width: 760px;
   width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .chatview-row {
   display: flex;
   width: 100%;
   margin-bottom: 6px;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .chatview-row.chatview-me {
@@ -65,13 +72,18 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
 }
 
 .chatview-bubble {
-  max-width: 75%;
-  padding: 7px 12px 8px;
+  max-width: 85%;
+  padding: 8px 14px 9px;
   border-radius: 8px;
   box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
   font-size: 14.2px;
-  line-height: 1.45;
+  line-height: 1.5;
   position: relative;
+  color: #111b21;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .chatview-me .chatview-bubble {
@@ -109,12 +121,19 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   text-align: center;
   margin-right: 6px;
   vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.chatview-text {
+  color: #111b21;
 }
 
 .chatview-text p {
   margin: 0 0 5px 0;
   white-space: pre-wrap;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  color: #111b21;
 }
 
 .chatview-text p:last-child {

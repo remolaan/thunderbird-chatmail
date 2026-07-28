@@ -32,12 +32,13 @@ async function getRawText(messageId) {
       html = html || part.body;
     }
     if (part.contentType && part.contentType.startsWith("image/") && part.partName) {
-      const cid = part.headers && part.headers["content-id"];
-      if (cid) {
+      const rawCid = part.headers && part.headers["content-id"];
+      if (rawCid) {
+        const cidStr = Array.isArray(rawCid) ? rawCid[0] : rawCid;
         inlineImages.push({
           partName: part.partName,
           contentType: part.contentType,
-          contentId: cid.replace(/^</, "").replace(/>$/, ""),
+          contentId: (cidStr + "").replace(/^</, "").replace(/>$/, "").trim(),
         });
       }
     }
