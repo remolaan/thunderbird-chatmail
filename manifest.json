@@ -11,8 +11,7 @@
   },
   "permissions": [
     "messagesRead",
-    "messagesModify",
-    "storage"
+    "messagesModify"
   ],
   "background": {
     "scripts": ["parser.js", "background.js"]

@@ -3,7 +3,6 @@
   window.__chatViewInstalled = true;
 
   let overlay = null;
-  let myTabId = null;
 
   function escapeHtml(str) {
     return str
@@ -32,8 +31,6 @@
     const list = document.createElement("div");
     list.className = "chatview-list";
 
-    // segments are newest-first in the raw text (top-posted); show oldest
-    // first, like a real chat thread, newest at the bottom.
     const ordered = [...segments].reverse();
 
     let lastSender = null;
@@ -94,34 +91,32 @@
   }
 
   // -----------------------------------------------------------------------
-  // Communication with the background script
+  // Communication with background script
+  //
+  // Message display scripts cannot receive tabs.sendMessage. We poll the
+  // background via runtime.sendMessage (which works from any context).
   // -----------------------------------------------------------------------
 
-  // On initial load, ask background if chat view is active for this tab.
+  // On initial load: ask background if chat view is already on
   browser.runtime.sendMessage({ type: "chatview-init" }).then((init) => {
-    if (init) {
-      myTabId = init.tabId;
-      if (init.active) {
-        render(init.segments, init.myEmails || []);
-      }
+    if (init && init.active) {
+      render(init.segments, init.myEmails || []);
     }
   }).catch(() => {});
 
-  // Listen for toggle signals from background via storage.
-  browser.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local" || myTabId === null) return;
-    const key = `chatview-cmd-${myTabId}`;
-    if (changes[key]) {
-      const cmd = changes[key].newValue;
-      if (cmd === "restore") {
+  // Poll for state changes (toggle button clicks)
+  let wasActive = false;
+  setInterval(async () => {
+    try {
+      const res = await browser.runtime.sendMessage({ type: "chatview-poll" });
+      if (res && res.active && !wasActive) {
+        render(res.segments, res.myEmails || []);
+      } else if (res && !res.active && wasActive) {
         restore();
-      } else if (cmd === "render") {
-        browser.runtime.sendMessage({ type: "chatview-fetch" }).then((res) => {
-          if (res && res.active) {
-            render(res.segments, res.myEmails || []);
-          }
-        }).catch(() => {});
       }
+      wasActive = res ? res.active : false;
+    } catch (e) {
+      // Background not available yet
     }
-  });
+  }, 400);
 })();

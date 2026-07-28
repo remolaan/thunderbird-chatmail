@@ -1,11 +1,6 @@
-// Per-tab state: is chat view currently on?
 const chatViewOn = new Map();
 const parsedCache = new Map();
 
-// ---------------------------------------------------------------------------
-// Register the chat-view content script + CSS so Thunderbird injects them
-// into every opened message's content document automatically.
-// ---------------------------------------------------------------------------
 async function registerMessageDisplayScripts() {
   try {
     await messenger.scripting.messageDisplay.registerScripts([
@@ -84,64 +79,58 @@ async function getDisplayedMessage(tabId) {
   return list.messages[0];
 }
 
+// Build response data for a tab's current message
+async function buildRenderData(tabId) {
+  const isOn = chatViewOn.get(tabId);
+  if (!isOn) return { active: false };
+  const msg = await getDisplayedMessage(tabId);
+  if (!msg) return { active: false };
+  const segments = await parseMessage(msg.id);
+  const myEmails = await getMyEmails();
+  return { active: true, segments, myEmails };
+}
+
 // ---------------------------------------------------------------------------
-// Respond to content script queries (sent via runtime.sendMessage)
+// Handle queries from the content script (message display script)
+// Content scripts cannot receive tabs.sendMessage, so they poll instead.
 // ---------------------------------------------------------------------------
 messenger.runtime.onMessage.addListener(async (message, sender) => {
+  const tabId = sender.tab?.id;
+  if (!tabId) return false;
+
   if (message.type === "chatview-init") {
-    const tabId = sender.tab?.id;
-    if (!tabId) return { active: false, tabId: null };
     const isOn = chatViewOn.get(tabId);
     if (!isOn) return { active: false, tabId };
-    const msg = await getDisplayedMessage(tabId);
-    if (!msg) return { active: false, tabId };
-    const segments = await parseMessage(msg.id);
-    const myEmails = await getMyEmails();
-    return { active: true, tabId, segments, myEmails };
+    const data = await buildRenderData(tabId);
+    return { ...data, tabId };
   }
 
-  if (message.type === "chatview-fetch") {
-    const tabId = sender.tab?.id;
-    if (!tabId) return { active: false };
-    const isOn = chatViewOn.get(tabId);
-    if (!isOn) return { active: false };
-    const msg = await getDisplayedMessage(tabId);
-    if (!msg) return { active: false };
-    const segments = await parseMessage(msg.id);
-    const myEmails = await getMyEmails();
-    return { active: true, segments, myEmails };
+  if (message.type === "chatview-poll") {
+    return buildRenderData(tabId);
   }
 
   if (message.type === "chatview-user-restored") {
-    const tabId = sender.tab?.id;
-    if (tabId) {
-      chatViewOn.set(tabId, false);
-      messenger.messageDisplayAction.setTitle({ tabId, title: "Toggle Chat View" });
-    }
+    chatViewOn.set(tabId, false);
+    messenger.messageDisplayAction.setTitle({ tabId, title: "Toggle Chat View" });
+    return {};
   }
 
   return false;
 });
 
 // ---------------------------------------------------------------------------
-// Toggle button in the message display toolbar
+// Toggle button in the message header toolbar
 // ---------------------------------------------------------------------------
 messenger.messageDisplayAction.onClicked.addListener(async (tab) => {
   const isOn = chatViewOn.get(tab.id);
-  if (isOn) {
-    chatViewOn.set(tab.id, false);
-    messenger.messageDisplayAction.setTitle({ tabId: tab.id, title: "Toggle Chat View" });
-    await messenger.storage.local.set({ [`chatview-cmd-${tab.id}`]: "restore" });
-  } else {
-    const msg = await getDisplayedMessage(tab.id);
-    if (!msg) return;
-    chatViewOn.set(tab.id, true);
-    messenger.messageDisplayAction.setTitle({ tabId: tab.id, title: "Show Original" });
-    await messenger.storage.local.set({ [`chatview-cmd-${tab.id}`]: "render" });
-  }
+  chatViewOn.set(tab.id, !isOn);
+  messenger.messageDisplayAction.setTitle({
+    tabId: tab.id,
+    title: isOn ? "Toggle Chat View" : "Show Original",
+  });
 });
 
-// Reset state whenever a (potentially different) message is displayed
+// Reset state when a different message is displayed
 messenger.messageDisplay.onMessagesDisplayed.addListener((tab) => {
   chatViewOn.set(tab.id, false);
   messenger.messageDisplayAction.setTitle({ tabId: tab.id, title: "Toggle Chat View" });
