@@ -34,9 +34,51 @@
       .filter((img) => img.dataUri)
       .map(
         (img) =>
-          `<div class="chatview-image"><img src="${img.dataUri}" alt="inline image" /></div>`
+          `<div class="chatview-image"><img src="${img.dataUri}" /></div>`
       )
       .join("");
+  }
+
+  // Extract just the date part (without time) from a date string
+  function extractDatePart(dateStr) {
+    if (!dateStr) return "";
+    // Try to match common date patterns
+    const dayMonthYear = dateStr.match(
+      /(\d{1,2}\/\d{1,2}\/\d{2,4})|(\w+,\s+\w+\s+\d{1,2},?\s+\d{4})|(\d{1,2}\s+\w+\s+\d{4})/
+    );
+    return dayMonthYear ? dayMonthYear[0] : dateStr.split(",")[0];
+  }
+
+  // Format a date string into a human-readable day label
+  function formatDateLabel(dateStr) {
+    if (!dateStr) return null;
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Try to parse the date
+    const parsed = new Date(dateStr.replace(/(\d+)(st|nd|rd|th)/, "$1"));
+    if (isNaN(parsed.getTime())) return null;
+
+    if (
+      parsed.getDate() === today.getDate() &&
+      parsed.getMonth() === today.getMonth() &&
+      parsed.getFullYear() === today.getFullYear()
+    )
+      return "Today";
+    if (
+      parsed.getDate() === yesterday.getDate() &&
+      parsed.getMonth() === yesterday.getMonth() &&
+      parsed.getFullYear() === yesterday.getFullYear()
+    )
+      return "Yesterday";
+
+    return parsed.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
   }
 
   function render(segments, myEmails) {
@@ -50,16 +92,33 @@
 
     const ordered = [...segments].reverse();
     let lastSender = null;
+    let lastDateKey = null;
 
-    for (const seg of ordered) {
+    for (let idx = 0; idx < ordered.length; idx++) {
+      const seg = ordered[idx];
       const isMe =
         !seg.sender ||
         (seg.email && myEmails.includes(seg.email.toLowerCase()));
       const showHeader = seg.sender !== lastSender;
+      const isReply = !showHeader && idx > 0;
       lastSender = seg.sender;
 
+      // Date separator
+      const dateKey = extractDatePart(seg.date);
+      if (dateKey && dateKey !== lastDateKey) {
+        const label = formatDateLabel(seg.date) || dateKey;
+        const sep = document.createElement("div");
+        sep.className = "chatview-date-sep";
+        sep.textContent = label;
+        list.appendChild(sep);
+        lastDateKey = dateKey;
+      }
+
       const row = document.createElement("div");
-      row.className = "chatview-row " + (isMe ? "chatview-me" : "chatview-them");
+      row.className =
+        "chatview-row " +
+        (isMe ? "chatview-me" : "chatview-them") +
+        (isReply ? " chatview-reply" : "");
 
       const bubble = document.createElement("div");
       bubble.className = "chatview-bubble";
@@ -69,17 +128,23 @@
         if (isMe) {
           headerHtml = `<div class="chatview-sender chatview-sender-me">You</div>`;
         } else {
-          headerHtml = `<div class="chatview-avatar">${initials(seg.sender || "?")}</div><div class="chatview-sender">${escapeHtml(seg.sender || "Unknown")}</div>`;
+          headerHtml = `<div class="chatview-avatar-row"><span class="chatview-avatar">${initials(seg.sender || "?")}</span><span class="chatview-sender">${escapeHtml(seg.sender || "Unknown")}</span></div>`;
         }
+      } else if (isReply) {
+        headerHtml = `<div class="chatview-reply-indicator">↪ Reply</div>`;
       }
 
       const imagesHtml = renderImages(seg.inlineImages);
+
+      const metaHtml = seg.date
+        ? `<div class="chatview-meta"><span class="chatview-meta-icon">🕐</span> ${escapeHtml(seg.date)}</div>`
+        : "";
 
       bubble.innerHTML =
         headerHtml +
         `<div class="chatview-text">${bodyToHtml(seg.body)}</div>` +
         imagesHtml +
-        `<div class="chatview-meta">${escapeHtml(seg.date || "")}</div>`;
+        metaHtml;
 
       row.appendChild(bubble);
       list.appendChild(row);

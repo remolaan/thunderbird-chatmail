@@ -15,6 +15,8 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   box-sizing: border-box;
 }
 
+/* ── Toolbar ── */
+
 .chatview-toolbar {
   position: sticky;
   top: 0;
@@ -42,12 +44,14 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   background: #d9dbde;
 }
 
+/* ── Message list ── */
+
 .chatview-list {
   flex: 1;
-  padding: 20px 16px 32px;
+  padding: 12px 16px 32px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   max-width: 760px;
   width: 100%;
   margin: 0 auto;
@@ -55,10 +59,27 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   min-width: 0;
 }
 
+/* ── Date separator ── */
+
+.chatview-date-sep {
+  text-align: center;
+  margin: 12px 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #54656f;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 4px 12px;
+  border-radius: 6px;
+  display: inline-block;
+  align-self: center;
+}
+
+/* ── Message rows ── */
+
 .chatview-row {
   display: flex;
   width: 100%;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   box-sizing: border-box;
   min-width: 0;
 }
@@ -71,9 +92,15 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   justify-content: flex-start;
 }
 
+.chatview-row.chatview-reply {
+  margin-top: -2px;
+}
+
+/* ── Bubble ── */
+
 .chatview-bubble {
-  max-width: 85%;
-  padding: 8px 14px 9px;
+  max-width: 82%;
+  padding: 7px 13px 8px;
   border-radius: 8px;
   box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
   font-size: 14.2px;
@@ -96,33 +123,48 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   border-top-left-radius: 2px;
 }
 
+/* ── Sender header + avatar ── */
+
+.chatview-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.chatview-avatar {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #53697a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 26px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
 .chatview-sender {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  margin-bottom: 3px;
   color: #1a73a3;
 }
 
 .chatview-sender-me {
   color: #1a8a3a;
   text-align: right;
+  margin-bottom: 4px;
 }
 
-.chatview-avatar {
-  display: inline-block;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #53697a;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 28px;
-  text-align: center;
-  margin-right: 6px;
-  vertical-align: middle;
-  flex-shrink: 0;
+.chatview-reply-indicator {
+  font-size: 11px;
+  color: #8696a0;
+  margin-bottom: 3px;
 }
+
+/* ── Text body ── */
 
 .chatview-text {
   color: #111b21;
@@ -140,6 +182,8 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   margin-bottom: 0;
 }
 
+/* ── Inline images ── */
+
 .chatview-image {
   margin: 6px 0 2px;
 }
@@ -151,9 +195,20 @@ body.chatview-hidden-body > *:not(#chatview-overlay) {
   display: block;
 }
 
+/* ── Timestamp ── */
+
 .chatview-meta {
-  font-size: 11px;
+  font-size: 11.5px;
   color: #667781;
   text-align: right;
-  margin-top: 5px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.chatview-meta-icon {
+  font-size: 10px;
+  opacity: 0.7;
 }
