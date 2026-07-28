@@ -50,7 +50,7 @@
   // ---- signature block detection ----
   // Common sign-offs after which contact-card lines usually follow.
   const SIGNOFF_RE =
-    /^(regards|best regards|thanks|thank you|thanks in advance|best|sincerely|warm regards|kind regards|cheers)\s*,?\s*$/i;
+    /^(regards|best regards|thanks(&| and) regards|thank you|thanks in advance|thanks|thank you(&| and) regards|best|sincerely|warm regards|kind regards|cheers)\s*,?!?\s*$/i;
 
   const CONTACT_LINE_RE =
     /^(mobile|phone|tel|address|email|web|www\.)/i;

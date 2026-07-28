@@ -11,7 +11,6 @@ async function registerMessageDisplayScripts() {
         runAt: "document_idle",
       },
     ]);
-    console.log("ChatView: scripts registered successfully");
   } catch (err) {
     console.warn("ChatView: registerScripts skipped:", err && err.message);
   }
@@ -22,6 +21,7 @@ async function getRawText(messageId) {
   const full = await messenger.messages.getFull(messageId);
   let plain = null;
   let html = null;
+  const inlineImages = [];
 
   function walk(part) {
     if (!part) return;
@@ -31,15 +31,38 @@ async function getRawText(messageId) {
     if (part.contentType && part.contentType.startsWith("text/html") && part.body) {
       html = html || part.body;
     }
+    if (part.contentType && part.contentType.startsWith("image/") && part.partName) {
+      const cid = part.headers && part.headers["content-id"];
+      if (cid) {
+        inlineImages.push({
+          partName: part.partName,
+          contentType: part.contentType,
+          contentId: cid.replace(/^</, "").replace(/>$/, ""),
+        });
+      }
+    }
     if (part.parts) {
       for (const p of part.parts) walk(p);
     }
   }
   walk(full);
 
-  if (plain) return plain;
+  for (const img of inlineImages) {
+    try {
+      const file = await messenger.messages.getAttachmentFile(messageId, img.partName);
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      img.dataUri = `data:${img.contentType};base64,${btoa(binary)}`;
+    } catch (e) {
+      console.warn("ChatView: failed to load image", img.partName, e);
+    }
+  }
+
+  if (plain) return { plain, inlineImages };
   if (html) {
-    return html
+    const stripped = html
       .replace(/<style[\s\S]*?<\/style>/gi, "")
       .replace(/<script[\s\S]*?<\/script>/gi, "")
       .replace(/<br\s*\/?>/gi, "\n")
@@ -51,14 +74,18 @@ async function getRawText(messageId) {
       .replace(/&lt;/g, "<")
       .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"');
+    return { plain: stripped, inlineImages };
   }
-  return "";
+  return { plain: "", inlineImages: [] };
 }
 
 async function parseMessage(messageId) {
   if (parsedCache.has(messageId)) return parsedCache.get(messageId);
-  const rawText = await getRawText(messageId);
-  const segments = ChatViewParser.parseChain(rawText);
+  const { plain, inlineImages } = await getRawText(messageId);
+  const segments = ChatViewParser.parseChain(plain);
+  if (inlineImages.length > 0 && segments.length > 0) {
+    segments[0].inlineImages = inlineImages;
+  }
   parsedCache.set(messageId, segments);
   return segments;
 }
@@ -95,12 +122,8 @@ async function buildRenderData(tabId) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Handle queries from the content script
-// ---------------------------------------------------------------------------
 messenger.runtime.onMessage.addListener(async (message, sender) => {
   const tabId = sender.tab?.id;
-  console.log("ChatView: onMessage type=" + message.type + " tabId=" + tabId + " sender=", JSON.stringify(sender));
   if (!tabId) return false;
 
   if (message.type === "chatview-init") {
@@ -123,21 +146,11 @@ messenger.runtime.onMessage.addListener(async (message, sender) => {
   return false;
 });
 
-// ---------------------------------------------------------------------------
-// Toggle button in the message header toolbar
-// ---------------------------------------------------------------------------
 messenger.messageDisplayAction.onClicked.addListener(async (tab) => {
   const isOn = chatViewOn.get(tab.id);
-  console.log("ChatView: toggle clicked tabId=" + tab.id + " wasOn=" + isOn);
   chatViewOn.set(tab.id, !isOn);
   messenger.messageDisplayAction.setTitle({
     tabId: tab.id,
     title: isOn ? "Toggle Chat View" : "Show Original",
   });
-});
-
-messenger.messageDisplay.onMessagesDisplayed.addListener((tab) => {
-  console.log("ChatView: message displayed tabId=" + tab.id);
-  chatViewOn.set(tab.id, false);
-  messenger.messageDisplayAction.setTitle({ tabId: tab.id, title: "Toggle Chat View" });
 });
