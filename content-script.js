@@ -2,6 +2,8 @@
   if (window.__chatViewInstalled) return;
   window.__chatViewInstalled = true;
 
+  console.log("ChatView: content script loaded");
+
   let overlay = null;
 
   function escapeHtml(str) {
@@ -23,6 +25,7 @@
   }
 
   function render(segments, myEmails) {
+    console.log("ChatView: render called, segments:", segments.length);
     if (overlay) return;
 
     overlay = document.createElement("div");
@@ -91,24 +94,25 @@
   }
 
   // -----------------------------------------------------------------------
-  // Communication with background script
-  //
-  // Message display scripts cannot receive tabs.sendMessage. We poll the
-  // background via runtime.sendMessage (which works from any context).
-  // -----------------------------------------------------------------------
-
   // On initial load: ask background if chat view is already on
+  // -----------------------------------------------------------------------
   browser.runtime.sendMessage({ type: "chatview-init" }).then((init) => {
+    console.log("ChatView: init response:", JSON.stringify(init));
     if (init && init.active) {
       render(init.segments, init.myEmails || []);
     }
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error("ChatView: init error:", err);
+  });
 
+  // -----------------------------------------------------------------------
   // Poll for state changes (toggle button clicks)
+  // -----------------------------------------------------------------------
   let wasActive = false;
   setInterval(async () => {
     try {
       const res = await browser.runtime.sendMessage({ type: "chatview-poll" });
+      console.log("ChatView: poll response:", JSON.stringify(res), "wasActive:", wasActive);
       if (res && res.active && !wasActive) {
         render(res.segments, res.myEmails || []);
       } else if (res && !res.active && wasActive) {
@@ -116,7 +120,7 @@
       }
       wasActive = res ? res.active : false;
     } catch (e) {
-      // Background not available yet
+      console.error("ChatView: poll error:", e);
     }
   }, 400);
 })();

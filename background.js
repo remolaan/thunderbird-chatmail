@@ -11,6 +11,7 @@ async function registerMessageDisplayScripts() {
         runAt: "document_idle",
       },
     ]);
+    console.log("ChatView: scripts registered successfully");
   } catch (err) {
     console.warn("ChatView: registerScripts skipped:", err && err.message);
   }
@@ -79,23 +80,27 @@ async function getDisplayedMessage(tabId) {
   return list.messages[0];
 }
 
-// Build response data for a tab's current message
 async function buildRenderData(tabId) {
-  const isOn = chatViewOn.get(tabId);
-  if (!isOn) return { active: false };
-  const msg = await getDisplayedMessage(tabId);
-  if (!msg) return { active: false };
-  const segments = await parseMessage(msg.id);
-  const myEmails = await getMyEmails();
-  return { active: true, segments, myEmails };
+  try {
+    const isOn = chatViewOn.get(tabId);
+    if (!isOn) return { active: false };
+    const msg = await getDisplayedMessage(tabId);
+    if (!msg) return { active: false };
+    const segments = await parseMessage(msg.id);
+    const myEmails = await getMyEmails();
+    return { active: true, segments, myEmails };
+  } catch (e) {
+    console.error("ChatView: buildRenderData error:", e);
+    return { active: false };
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Handle queries from the content script (message display script)
-// Content scripts cannot receive tabs.sendMessage, so they poll instead.
+// Handle queries from the content script
 // ---------------------------------------------------------------------------
 messenger.runtime.onMessage.addListener(async (message, sender) => {
   const tabId = sender.tab?.id;
+  console.log("ChatView: onMessage type=" + message.type + " tabId=" + tabId + " sender=", JSON.stringify(sender));
   if (!tabId) return false;
 
   if (message.type === "chatview-init") {
@@ -123,6 +128,7 @@ messenger.runtime.onMessage.addListener(async (message, sender) => {
 // ---------------------------------------------------------------------------
 messenger.messageDisplayAction.onClicked.addListener(async (tab) => {
   const isOn = chatViewOn.get(tab.id);
+  console.log("ChatView: toggle clicked tabId=" + tab.id + " wasOn=" + isOn);
   chatViewOn.set(tab.id, !isOn);
   messenger.messageDisplayAction.setTitle({
     tabId: tab.id,
@@ -130,8 +136,8 @@ messenger.messageDisplayAction.onClicked.addListener(async (tab) => {
   });
 });
 
-// Reset state when a different message is displayed
 messenger.messageDisplay.onMessagesDisplayed.addListener((tab) => {
+  console.log("ChatView: message displayed tabId=" + tab.id);
   chatViewOn.set(tab.id, false);
   messenger.messageDisplayAction.setTitle({ tabId: tab.id, title: "Toggle Chat View" });
 });
