@@ -6,8 +6,8 @@ async function registerMessageDisplayScripts() {
     await messenger.scripting.messageDisplay.registerScripts([
       {
         id: "chatview-content",
-        js: [{ file: "content-script.js" }],
-        css: [{ file: "chatview.css" }],
+        js: ["content-script.js"],
+        css: ["chatview.css"],
         runAt: "document_idle",
       },
     ]);
